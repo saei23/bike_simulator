@@ -1,0 +1,16 @@
+{
+  "name": "bike_simulator",
+  "version": "1.0.0",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Simulerar cyklar och skickar data till backend.",
+  "dependencies": {
+    "axios": "^1.7.9"
+  }
+}
