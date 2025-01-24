@@ -28,7 +28,7 @@ const initTrips = async (cityName, tripsCount) => {
       },
       bike: {
         _id: `${trips.length + index + 1}`,
-        bike_id: `${trips.length + index + 1}`,
+        bike_id: `${Math.floor(Math.random() * (10000 - 200 + 1)) + 200 + index}`,
         location: { coordinates: [0, 0] },
         battery_level: Math.floor(Math.random() * (100 - 20 + 1)) + 20,
         speed: Math.random() * (20 - 5) + 5,
@@ -41,7 +41,6 @@ const initTrips = async (cityName, tripsCount) => {
       message: '',
       hasCharged: false,
       isOutsideCity: false,
-      completed: false,
     }));
 
     for (const trip of newTrips) {
@@ -78,10 +77,8 @@ app.post('/add-trips', async (req, res) => {
 });
 
 async function updateTrip() {
+  const tripsToRemove = [];
   const promises = trips.map(async (trip) => {
-    if (trip.completed) {
-      return;
-    }
     const route = routes[trip.trip_id];
     if (route && route.length > 0) {
 
@@ -99,7 +96,7 @@ async function updateTrip() {
       }
       const theCity = cities[trip.city];
       const cityBoundary = await axios
-        .get(`${BACKEND_URL}/api/city/${theCity.id}`)
+        .get(`${BACKEND_URL}/api/v1/city/${theCity.id}`)
         .then((response) => response.data.boundary.coordinates[0])
         .catch((err) => {
           console.error(`Kunde inte hämta gränser ${trip.city}:`, err.message);
@@ -137,15 +134,14 @@ async function updateTrip() {
           trip.bike.status = 'maintenance'
           trip.bike.speed = 0;
           trip.bike.message = 'Cykeln är död'
-          // tripsToRemove.push(trip.trip_id);
+          tripsToRemove.push(trip.trip_id);
         } else {
           trip.bike.status = 'available';
           trip.bike.speed = 0;
           trip.bike.message = 'Resa klar!';
-          // tripsToRemove.push(trip.trip_id);
+          tripsToRemove.push(trip.trip_id);
         }
         
-        trip.completed = true;
         socket.emit('update-position', trip);
         return;
       }
@@ -153,6 +149,7 @@ async function updateTrip() {
       trip.routeIndex = (trip.routeIndex + 1) % route.length;
       const [lat, lng] = route[trip.routeIndex];
       trip.bike.location.coordinates = [lng, lat];
+
       trip.bike.status = 'in-use';
       socket.emit('update-position', trip);
     }
@@ -160,10 +157,10 @@ async function updateTrip() {
 
   await Promise.all(promises);
 
-  // for (const tripId of tripsToRemove) {
-  //   trips = trips.filter((trip) => trip.trip_id !== tripId);
-  //   delete routes[tripId];
-  // }
+  for (const tripId of tripsToRemove) {
+    trips = trips.filter((trip) => trip.trip_id !== tripId);
+    delete routes[tripId];
+  }
 }
 
 app.listen(port, () => {

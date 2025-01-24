@@ -96,7 +96,7 @@ async function updateTrip() {
       }
       const theCity = cities[trip.city];
       const cityBoundary = await axios
-        .get(`${BACKEND_URL}/api/city/${theCity.id}`)
+        .get(`${BACKEND_URL}/api/v1/city/${theCity.id}`)
         .then((response) => response.data.boundary.coordinates[0])
         .catch((err) => {
           console.error(`Kunde inte hämta gränser ${trip.city}:`, err.message);

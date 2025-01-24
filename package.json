@@ -4,7 +4,7 @@
   "main": "simulator.js",
   "scripts": {
     "start": "nodemon simulator.js",
-    "sim": "node sim/simulator.js",
+    "sim": "nodemon sim/simulator.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

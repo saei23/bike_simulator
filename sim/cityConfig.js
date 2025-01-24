@@ -28,7 +28,7 @@ const getRandomPointInCity = async (city) => {
       return null;
     }
 
-    const response = await axios.get(`${BACKEND_URL}/api/city/${theCity.id}`);
+    const response = await axios.get(`${BACKEND_URL}/api/v1/city/${theCity.id}`);
     const polygon = response.data.boundary.coordinates[0];
 
     const { latMin, latMax, lngMin, lngMax } = boundsFromPolygon(polygon);
