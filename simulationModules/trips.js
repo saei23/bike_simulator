@@ -1,47 +1,50 @@
-const express = require('express');
+const getRouteInCity = require('../routePlaning/routePlaning')
+const { isPointOusideCity, fetchCity } = require('../cityModules/cityBound')
+const cities = require('../cityModules/cities')
 const { io } = require('socket.io-client');
-const { cities } = require('./cityConfig')
-const getRouteInCity = require('./routePlaning');
-const axios = require('axios');
-const turf = require('@turf/turf');
-
-
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
 
 const socket = io(BACKEND_URL);
-const app = express();
-const port = 4000;
-
 let trips = [];
 let routes = {};
-
-app.use(express.json());
+const usedBikeIds = new Set();
+const tripsToRemove = [];
 
 const initTrips = async (cityName, tripsCount) => {
   try {
-    console.log(`Lägger till ${tripsCount} resor 1 ${cityName}...`);
-    const newTrips = Array.from({ length: tripsCount }, (_, index) => ({
-      trip_id: `${trips.length + index + 1}`,
-      user: {
-        user_id: `${trips.length + index + 1}`,
-        account_balance: 10000
-      },
-      bike: {
-        _id: `${trips.length + index + 1}`,
-        bike_id: `${Math.floor(Math.random() * (10000 - 200 + 1)) + 200 + index}`,
-        location: { coordinates: [0, 0] },
-        battery_level: Math.floor(Math.random() * (100 - 20 + 1)) + 20,
-        speed: Math.random() * (20 - 5) + 5,
-        status: 'available',
+    console.log(`Lägger till ${tripsCount} resor i ${cityName}...`);
+    const newTrips = Array.from({ length: tripsCount }, (_, index) => {
+      let bikeId;
+
+      do {
+        bikeId = Math.floor(Math.random() * (1000000 - 200 + 1)) + 200 + index;
+      } while (usedBikeIds.has(bikeId));
+
+      usedBikeIds.add(bikeId);
+
+      return {
+        trip_id: `${trips.length + index + 1}`,
+        user: {
+          user_id: `${trips.length + index + 1}`,
+          account_balance: 10000,
+        },
+        bike: {
+          _id: `${bikeId}`,
+          bike_id: `${bikeId}`,
+          location: { coordinates: [0, 0] },
+          battery_level: Math.floor(Math.random() * (100 - 20 + 1)) + 20,
+          speed: Math.random() * (25 - 5) + 5,
+          status: 'available',
+          message: '',
+        },
+        routeIndex: 0,
+        city: cityName,
+        cost: 10,
         message: '',
-      },
-      routeIndex: 0,
-      city: cityName,
-      cost: 10,
-      message: '',
-      hasCharged: false,
-      isOutsideCity: false,
-    }));
+        hasCharged: false,
+        isOutsideCity: false,
+      };
+    });
 
     for (const trip of newTrips) {
       const route = await getRouteInCity(cityName);
@@ -60,24 +63,11 @@ const initTrips = async (cityName, tripsCount) => {
 
     console.log(`La till ${newTrips.length} resor.`);
   } catch (error) {
-    console.error('Misslyckades me att skapa resor:', error.message);
+    console.error('Misslyckades med att skapa resor:', error.message);
   }
 };
 
-// API endpoint to dynamically add trips
-app.post('/add-trips', async (req, res) => {
-  const { city, trips: tripsCount } = req.body;
-  if (!city || !tripsCount) {
-    return res.status(400).send("Stad och antal resor");
-  }
-
-  console.log(`La till ${tripsCount} resor för ${city}...`);
-  await initTrips(city, tripsCount);
-  res.status(200).send(`La till ${tripsCount} resor.`);
-});
-
 async function updateTrip() {
-  const tripsToRemove = [];
   const promises = trips.map(async (trip) => {
     const route = routes[trip.trip_id];
     if (route && route.length > 0) {
@@ -85,29 +75,35 @@ async function updateTrip() {
       let isOutsideCity = trip.isOutsideCity;
 
       if (trip.bike.status === 'in-use') {
-        trip.bike.battery_level -= 0.25;
+        // console.log("first", trip.bike.speed)
         trip.bike.speed += (Math.random() - 0.5) * 1;
+        // console.log("second",trip.bike.speed)
         if (trip.bike.speed < 5) trip.bike.speed = 5;
-        if (trip.bike.speed > 20) trip.bike.speed = 20;
+        if (trip.bike.speed > 25) trip.bike.speed = 25;
+        const dischargeRate = Math.min(0.25 + trip.bike.speed * 0.02, 1);
+        trip.bike.battery_level -= dischargeRate
       }
 
       if (trip.bike.status === 'in-use') {
         trip.cost += 1; 
       }
       const theCity = cities[trip.city];
-      const cityBoundary = await axios
-        .get(`${BACKEND_URL}/api/v1/city/${theCity.id}`)
-        .then((response) => response.data.boundary.coordinates[0])
-        .catch((err) => {
-          console.error(`Kunde inte hämta gränser ${trip.city}:`, err.message);
-          return null;
-        });
+      const city = await fetchCity(theCity.id)
+      const cityBoundary = city.data.boundary.coordinates[0]
+      // const cityBoundary = await axios
+      //   .get(`${BACKEND_URL}/api/v1/city/${theCity.id}`)
+      //   .then((response) => response.data.boundary.coordinates[0])
+      //   .catch((err) => {
+      //     console.error(`Kunde inte hämta gränser ${trip.city}:`, err.message);
+      //     return null;
+      //   });
 
       if (cityBoundary) {
-        const polygon = turf.polygon([cityBoundary]);
-        const [lat, lng] = route[trip.routeIndex];
-        const point = turf.point([lng, lat]);
-        isOutsideCity = !turf.booleanPointInPolygon(point, polygon);
+        // const polygon = turf.polygon([cityBoundary]);
+        // const [lat, lng] = route[trip.routeIndex];
+        // const point = turf.point([lng, lat]);
+        const bikePoint = route[trip.routeIndex];
+        isOutsideCity = isPointOusideCity(cityBoundary, bikePoint)
         
         trip.isOutsideCity = isOutsideCity;
 
@@ -131,6 +127,7 @@ async function updateTrip() {
         }
 
         if (trip.bike.battery_level <= 0) {
+          trip.bike.battery_level = 0
           trip.bike.status = 'maintenance'
           trip.bike.speed = 0;
           trip.bike.message = 'Cykeln är död'
@@ -163,8 +160,4 @@ async function updateTrip() {
   }
 }
 
-app.listen(port, () => {
-  console.log(`Simulation server running http://localhost:${port}`);
-});
-
-setInterval(updateTrip, 1000 + Math.random() * 500);
+module.exports = {initTrips, updateTrip};

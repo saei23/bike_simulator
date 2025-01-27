@@ -10,6 +10,8 @@ RUN npm install
 
 COPY . .
 
+RUN chmod +x simulator.sh
+
 EXPOSE 4000
 
-CMD ["npm", "run", "sim"]
+CMD ["npm", "start"]

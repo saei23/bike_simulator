@@ -13,8 +13,9 @@ Bike simulator är en simulator som vi kommer använda för att testa och valide
 ## Teknologier
 - Node.js
 - Axios
-- Socket.IO
-- GeoJSON
+- Socket.io-client
+- Turf
+- Bash
 
 ## Installation
 Steg för att installera och köra simulatorn lokalt:
@@ -55,7 +56,14 @@ Se till att restAPI:et är igång och tillgängligt.
 - Test av extra avgifter.
 
 ## Användning med Docker Compose
-Starta simulatorn tillsammans med backend, frontend (webb-app) och mobile-app i docker-compose som hittas i VTEAM-repot.
+Starta simulatorn tillsammans med backend, frontend (webb-app) och mobile-app i docker-compose som hittas i VTEAM-repot. Efter att ha startat up simulatorns container så kan man använda sig av
+```bash
+docker exec -it <container_id_or_name> bash
+```
+för att hamna i simulatorns container. Efter det så kan man bröja simulera cyklar genom att köra
+```bash
+./simulator.sh <stad> <antal_cyklar>
+```
 
 ### Bygg och pusha Docker-image
 Bygg Docker-image:

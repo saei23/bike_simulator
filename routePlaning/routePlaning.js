@@ -1,6 +1,6 @@
 const axios = require('axios')
 const dns = require('dns')
-const { getRandomPointInCity } = require('./cityConfig')
+const getRandomPointInCity = require('../cityModules/cityConfig')
 dns.setDefaultResultOrder('ipv4first');
 
 const getRoute = async (start, end) => {
@@ -24,9 +24,9 @@ const getRoute = async (start, end) => {
   }
 };
 
-const getRouteInCity = async (city) => {
-  const startPoint = await getRandomPointInCity(city)
-  const endPoint = await getRandomPointInCity(city)
+const getRouteInCity = async (cityName) => {
+  const startPoint = await getRandomPointInCity(cityName)
+  const endPoint = await getRandomPointInCity(cityName)
 
   return await getRoute(startPoint, endPoint)
 }

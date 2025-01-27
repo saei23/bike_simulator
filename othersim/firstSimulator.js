@@ -1,7 +1,7 @@
 const express = require('express');
 const { io } = require('socket.io-client');
-const { cities } = require('./cityConfig')
-const getRouteInCity = require('./routePlaning');
+const { cities } = require('../city/cityConfig')
+const getRouteInCity = require('../routePlaning');
 const axios = require('axios');
 const turf = require('@turf/turf');
 
