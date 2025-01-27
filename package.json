@@ -4,8 +4,8 @@
   "main": "simulator.js",
   "scripts": {
     "start": "nodemon simulator.js",
-    "sim": "nodemon sim/simulator.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "rimraf coverage && jest --coverage",
+    "serve": "serve coverage/lcov-report -l 8888"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +18,14 @@
     "node-cache": "^5.1.2",
     "nodemon": "^3.1.9",
     "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "axios-mock-adapter": "^2.1.0",
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "coverage"
   }
 }
